@@ -2,67 +2,63 @@
 
 class Afterhours {
 
-	private $_enabled = false;
+    private $_enabled = false;
 
-	private $_jobs = array();
+    private $_jobs = array();
 
-	private $_functions = array();
+    private $_functions = array();
 
 
-	public __construct() {
+    public __construct() {
 
-		$apiName = php_sapi_name();
+        $apiName = php_sapi_name();
 
-		if (substr($apiName, 0, 3) === 'cgi' && function_exists('fastcgi_finish_request'))
-			$this->_enabled = true;
+        if (substr($apiName, 0, 3) === 'cgi' && function_exists('fastcgi_finish_request'))
+            $this->_enabled = true;
 
-	}
+    }
 
-	public function addJob(string $functionName, array $args = array()) {
+    public function addJob(string $functionName, array $args = array()) {
 
-		$this->_jobs[] = array(
-			'function' => $functionName,
-			'args' => $args
-		);
+        $this->_jobs[] = array(
+            'function' => $functionName,
+            'args' => $args
+        );
 
-	}
+    }
 
-	public function addJob(string $className, string $methodName, array $args = array()) {
+    public function addFunction($name, $function) {
 
-		$this->_jobs[] = array(
-			'class' => $className,
-			'function' => $methodName,
-			'args' => $args
-		);
+        if (!isset($this->_functions[$name]) && is_callable($function)) {
 
-	}
+            $this->_functions[$name] = $function;
 
-	public function addFunction($name, $function) {
+            return true;
 
-		if (!isset($this->_functions[$name]))
-			$this->_functions[$name] = $function;
+        }
 
-	}
+        return false;
 
-	public function runJobs($force = false) {
+    }
 
-		if ($this->_enabled || $force) {
+    public function runJobs($force = false) {
 
-			if (function_exists('fastcgi_finish_request'))
-				fastcgi_finish_request();
+        if ($this->_enabled || $force) {
 
-			foreach ($this->_jobs as $job) {
+            if (function_exists('fastcgi_finish_request'))
+                fastcgi_finish_request();
 
-				$function = $this->_functions[$job['function']];
-				$args = $job['args'];
+            foreach ($this->_jobs as $job) {
 
-				if (is_callable($function))
-					$function($args);
+                $function = $this->_functions[$job['function']];
+                $args = $job['args'];
 
-			}
+                call_user_func_array($function, $args);
 
-		}
+            }
 
-	}
+        }
+
+    }
 
 }
